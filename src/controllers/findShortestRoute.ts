@@ -37,14 +37,6 @@ const findShortestRoute = (api: RawApi, sourceCode: string, destinationCode: str
     }
   }
 
-  // Too hard to filter in the dijkstra algorithm :shrug:
-  if (route.filter((r) => r.type === "LAND").length > 2) {
-    return {
-      error: "Route not found",
-      code: 404,
-    }
-  }
-
   const distance = route.reduce((sum, route) => route.distance + sum, 0)
   const formattedRoute = route.map((r) => ({
     source: formatAirport(api.models.airports.getById(r.sourceId)),
