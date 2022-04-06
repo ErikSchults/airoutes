@@ -36,7 +36,7 @@ HTTP/1.1 200 OK
                 "lon": 28.8146,
                 "name": "Atatürk International Airport"
             },
-            "distanceMeters": {
+            "distance": {
                 "unit": "km",
                 "value": 2070
             },
@@ -59,7 +59,7 @@ HTTP/1.1 200 OK
                 "lon": 28.246,
                 "name": "OR Tambo International Airport"
             },
-            "distanceMeters": {
+            "distance": {
                 "unit": "km",
                 "value": 7471
             },
@@ -82,7 +82,7 @@ HTTP/1.1 200 OK
                 "lon": 18.6016998291,
                 "name": "Cape Town International Airport"
             },
-            "distanceMeters": {
+            "distance": {
                 "unit": "km",
                 "value": 1272
             },

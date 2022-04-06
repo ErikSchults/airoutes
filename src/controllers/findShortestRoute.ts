@@ -42,7 +42,7 @@ const findShortestRoute = (api: RawApi, sourceCode: string, destinationCode: str
     source: formatAirport(api.models.airports.getById(r.sourceId)),
     destination: formatAirport(api.models.airports.getById(r.destinationId)),
     type: r.type,
-    distanceMeters: formatDistance(r.distance),
+    distance: formatDistance(r.distance),
   }))
 
   return {
