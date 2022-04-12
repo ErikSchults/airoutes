@@ -2,6 +2,6 @@
   "compilerOptions": {
     "baseUrl": "./src",
     "outDir": "./build",
-    "target": "ES2022"
+    "target": "ES5"
   }
 }

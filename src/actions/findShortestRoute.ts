@@ -29,14 +29,14 @@ function findRoute(destination: Node) {
 }
 
 function makeWeights(sourceNode: Node) {
-  const weights = new Map([[sourceNode.route.destinationId, sourceNode]])
+  const weights = new Map([[`${sourceNode.route.destinationId}-${sourceNode.depth}`, sourceNode]])
 
   return {
     add(parent: Node, route: Route): Node {
       const distance = parent.distance + route.distance
       const depth = parent.depth + (route.type === "LAND" ? 0 : 1)
 
-      let child = weights.get(route.destinationId)
+      let child = weights.get(`${route.destinationId}-${depth}`)
 
       if (!child || child.distance > distance) {
         child = {
@@ -46,12 +46,11 @@ function makeWeights(sourceNode: Node) {
           parent,
         }
 
-        weights.set(route.destinationId, child)
+        weights.set(`${route.destinationId}-${depth}`, child)
       }
 
       return child
     },
-    get: (node: Node) => weights.get(node.route.destinationId),
   }
 }
 function hasConstraint(node: Node, visited: Visited, contraints: Constraints) {
