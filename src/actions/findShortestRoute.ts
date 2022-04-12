@@ -1,5 +1,6 @@
 import { Models } from "../api/application"
-import routes, { Route } from "models/routes"
+import { Route } from "models/routes"
+const bs = require("binary-search")
 
 interface Node {
   distance: number
@@ -73,12 +74,19 @@ function makeSourceNode(sourceId: number): Node {
 
 function makeQueue(source: Node) {
   const queue: Node[] = [source]
-  const byDistance = (a: Node, b: Node) => b.distance - a.distance
+  const comparator = (target: Node, needle: Node) => needle.distance - target.distance
 
   return {
-    add: (node: Node) => queue.push(node),
+    add: (node: Node) => {
+      let index = bs(queue, node, comparator)
+
+      if (index < 0) {
+        index = Math.abs(index) - 1
+      }
+
+      queue.splice(index, 0, node)
+    },
     next: () => queue.pop(),
-    sort: () => queue.sort(byDistance),
     get notEmpty() {
       return queue.length > 0
     },
@@ -119,7 +127,6 @@ export default function findShortestRoute(
       queue.add(weights.add(node, route))
     }
 
-    queue.sort()
     visited.add(node)
   }
 
