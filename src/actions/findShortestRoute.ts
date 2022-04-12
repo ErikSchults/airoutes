@@ -33,7 +33,7 @@ function getKey(route: Route, depth: number) {
 }
 
 function makeWeights(sourceNode: Node) {
-  const weights = new Map([[`${sourceNode.route.destinationId}-${sourceNode.depth}`, sourceNode]])
+  const weights = new Map([[getKey(sourceNode.route, sourceNode.depth), sourceNode]])
 
   return {
     add(parent: Node, route: Route): Node {
@@ -117,8 +117,6 @@ export default function findShortestRoute(
     const node = queue.next()
 
     if (node.route.destinationId === destinationId) {
-      visited.add(node)
-
       return findRoute(node)
     }
     if (visited.has(node) || node.depth > constraints.depth) continue
