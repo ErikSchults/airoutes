@@ -1,5 +1,5 @@
 import { Models } from "../api/application"
-import { Route } from "models/routes"
+import routes, { Route } from "models/routes"
 
 interface Node {
   distance: number
@@ -27,6 +27,10 @@ function findRoute(destination: Node) {
   return result.reverse().map((r) => r.route)
 }
 
+function getKey(route: Route, depth: number) {
+  return `${route.destinationId}-${depth}`
+}
+
 function makeWeights(sourceNode: Node) {
   const weights = new Map([[`${sourceNode.route.destinationId}-${sourceNode.depth}`, sourceNode]])
 
@@ -35,7 +39,7 @@ function makeWeights(sourceNode: Node) {
       const distance = parent.distance + route.distance
       const depth = parent.depth + (route.type === "LAND" ? 0 : 1)
 
-      let child = weights.get(`${route.destinationId}-${depth}`)
+      let child = weights.get(getKey(route, depth))
 
       if (!child || child.distance > distance) {
         child = {
@@ -45,7 +49,7 @@ function makeWeights(sourceNode: Node) {
           parent,
         }
 
-        weights.set(`${route.destinationId}-${depth}`, child)
+        weights.set(getKey(route, depth), child)
       }
 
       return child
@@ -81,13 +85,22 @@ function makeQueue(source: Node) {
   }
 }
 
+function makeVisited() {
+  const visited: Set<string> = new Set()
+
+  return {
+    add: (node: Node) => visited.add(getKey(node.route, node.depth)),
+    has: (node: Node) => visited.has(getKey(node.route, node.depth)),
+  }
+}
+
 export default function findShortestRoute(
   api: { models: Models },
   sourceId: number,
   destinationId: number,
   constraints: Constraints = { depth: 3 }
 ): Route[] {
-  const visited: WeakSet<Node> = new WeakSet()
+  const visited = makeVisited()
   const sourceNode = makeSourceNode(sourceId)
   const weights = makeWeights(sourceNode)
   const queue = makeQueue(sourceNode)
