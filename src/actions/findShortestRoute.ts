@@ -5,56 +5,61 @@ interface Node {
   distance: number
   depth: number
   route: Route
+  parent: Node
 }
-type Weights = Map<number, Node>
-type Visited = Set<number>
+type Visited = ReturnType<typeof makeVisited>
+type Constraints = {
+  maxDepth: number
+}
 
-function findRouteFromWeights(visited: Visited, weights: Weights, destinationId: number) {
-  const visitedWeights = Array.from(visited).map((airportId) => weights.get(airportId))
-  const queue = [destinationId]
+function findRoute(destination: Node) {
+  const queue = [destination]
   const result: Node[] = []
 
   while (queue.length > 0) {
-    const airportId = queue.pop()
-    const path = visitedWeights.find((node) => node.route.destinationId === airportId)
+    const node = queue.pop()
 
-    if (!path) {
-      return null
-    }
-
-    if (path.route.sourceId !== null) {
-      result.push(path)
-      queue.push(path.route.sourceId)
+    if (node.route.sourceId !== null) {
+      result.push(node)
+      queue.push(node.parent)
     }
   }
 
   return result.reverse().map((r) => r.route)
 }
 
-function addWeights(weights: Weights, route: Route) {
-  const parent = weights.get(route.sourceId)
-  const child = weights.get(route.destinationId)
-  const newDistance = parent.distance + route.distance
+function makeWeights(sourceNode: Node) {
+  const weights = new Map([[sourceNode.route.destinationId, sourceNode]])
 
-  if (!child || newDistance < child.distance) {
-    weights.set(route.destinationId, {
-      distance: newDistance,
-      depth: parent.depth + (route.type === "LAND" ? 0 : 1),
-      route,
-    })
+  return {
+    add(parent: Node, route: Route): Node {
+      const distance = parent.distance + route.distance
+      const depth = parent.depth + (route.type === "LAND" ? 0 : 1)
+
+      let child = weights.get(route.destinationId)
+
+      if (!child || child.distance > distance) {
+        child = {
+          distance: distance,
+          depth,
+          route,
+          parent,
+        }
+
+        weights.set(route.destinationId, child)
+      }
+
+      return child
+    },
+    get: (node: Node) => weights.get(node.route.destinationId),
   }
 }
-function makeSortQueue(weights: Weights) {
-  return (a: number, b: number) => weights.get(b).distance - weights.get(a).distance
+function hasConstraint(node: Node, visited: Visited, contraints: Constraints) {
+  return visited.has(node) || node.depth > contraints.maxDepth
 }
 
-export default function findShortestRoute(
-  api: { models: Models },
-  sourceId: number,
-  destinationId: number,
-  maxDepth = 3
-): Route[] {
-  const sourceNode: Node = {
+function makeSourceNode(sourceId: number): Node {
+  return {
     distance: 0,
     depth: 0,
     route: {
@@ -63,32 +68,61 @@ export default function findShortestRoute(
       distance: 0,
       type: "LAND",
     },
+    parent: null,
   }
-  const visited: Visited = new Set()
-  const weights: Weights = new Map([[sourceId, sourceNode]])
-  const queue = [sourceId]
-  const sortQueue = makeSortQueue(weights)
+}
 
-  while (queue.length > 0) {
-    const airportId = queue.pop()
+function makeVisited() {
+  const visited: WeakSet<Node> = new WeakSet()
 
-    if (visited.has(airportId)) continue
-    if (airportId === destinationId) {
-      visited.add(airportId)
-      break
+  return {
+    add: (node: Node) => visited.add(node),
+    has: (node: Node) => visited.has(node),
+  }
+}
+
+function makeQueue(source: Node) {
+  const queue: Node[] = [source]
+  const byDistance = (a: Node, b: Node) => b.distance - a.distance
+
+  return {
+    add: (node: Node) => queue.push(node),
+    next: () => queue.pop(),
+    sort: () => queue.sort(byDistance),
+    get notEmpty() {
+      return queue.length > 0
+    },
+  }
+}
+
+export default function findShortestRoute(
+  api: { models: Models },
+  sourceId: number,
+  destinationId: number,
+  constraints: Constraints = { maxDepth: 3 }
+): Route[] {
+  const visited = makeVisited()
+  const sourceNode = makeSourceNode(sourceId)
+  const weights = makeWeights(sourceNode)
+  const queue = makeQueue(sourceNode)
+
+  while (queue.notEmpty) {
+    const node = queue.next()
+
+    if (node.route.destinationId === destinationId) {
+      visited.add(node)
+
+      return findRoute(node)
+    }
+    if (hasConstraint(node, visited, constraints)) continue
+
+    for (const route of api.models.routes.getDestinations(node.route.destinationId)) {
+      queue.add(weights.add(node, route))
     }
 
-    // process whole queue, maybe destination at max depth
-    if (weights.get(airportId).depth > maxDepth) continue
-
-    for (const route of api.models.routes.getDestinations(airportId)) {
-      addWeights(weights, route)
-      queue.push(route.destinationId)
-    }
-
-    queue.sort(sortQueue)
-    visited.add(airportId)
+    queue.sort()
+    visited.add(node)
   }
 
-  return findRouteFromWeights(visited, weights, destinationId)
+  return null
 }

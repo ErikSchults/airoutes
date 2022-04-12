@@ -116,3 +116,24 @@ it("Returns null if no route", () => {
   const api = makeApi([makeRoute(1, 20, 1, "LAND"), makeRoute(20, 21, 10, "AIR")])
   expect(findShortestRoute(api, 1, 5)).toEqual(null)
 })
+
+it("Finds constrained route", () => {
+  const api = makeApi([
+    makeRoute(1, 2, 10, "AIR"),
+    makeRoute(2, 3, 10, "AIR"),
+    makeRoute(3, 4, 10, "AIR"),
+    makeRoute(4, 5, 10, "AIR"),
+    makeRoute(5, 100, 10, "AIR"),
+
+    // source, 1, of node 3 is overwritten by 2 on the shortest route 1-2-3-4-5
+    // thus 1-3 route is lost in the default djikstra
+    makeRoute(1, 3, 100, "AIR"),
+  ])
+
+  expect(findShortestRoute(api, 1, 100)).toEqual([
+    makeRoute(1, 3, 100, "AIR"),
+    makeRoute(3, 4, 10, "AIR"),
+    makeRoute(4, 5, 10, "AIR"),
+    makeRoute(5, 100, 10, "AIR"),
+  ])
+})
