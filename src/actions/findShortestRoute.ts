@@ -7,9 +7,8 @@ interface Node {
   route: Route
   parent: Node
 }
-type Visited = ReturnType<typeof makeVisited>
 type Constraints = {
-  maxDepth: number
+  depth: number
 }
 
 function findRoute(destination: Node) {
@@ -53,9 +52,6 @@ function makeWeights(sourceNode: Node) {
     },
   }
 }
-function hasConstraint(node: Node, visited: Visited, contraints: Constraints) {
-  return visited.has(node) || node.depth > contraints.maxDepth
-}
 
 function makeSourceNode(sourceId: number): Node {
   return {
@@ -68,15 +64,6 @@ function makeSourceNode(sourceId: number): Node {
       type: "LAND",
     },
     parent: null,
-  }
-}
-
-function makeVisited() {
-  const visited: WeakSet<Node> = new WeakSet()
-
-  return {
-    add: (node: Node) => visited.add(node),
-    has: (node: Node) => visited.has(node),
   }
 }
 
@@ -98,9 +85,9 @@ export default function findShortestRoute(
   api: { models: Models },
   sourceId: number,
   destinationId: number,
-  constraints: Constraints = { maxDepth: 3 }
+  constraints: Constraints = { depth: 3 }
 ): Route[] {
-  const visited = makeVisited()
+  const visited: WeakSet<Node> = new WeakSet()
   const sourceNode = makeSourceNode(sourceId)
   const weights = makeWeights(sourceNode)
   const queue = makeQueue(sourceNode)
@@ -113,7 +100,7 @@ export default function findShortestRoute(
 
       return findRoute(node)
     }
-    if (hasConstraint(node, visited, constraints)) continue
+    if (visited.has(node) || node.depth > constraints.depth) continue
 
     for (const route of api.models.routes.getDestinations(node.route.destinationId)) {
       queue.add(weights.add(node, route))
