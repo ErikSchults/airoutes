@@ -23,9 +23,20 @@ export default function makeRestAPI(api: ApplicationAPI) {
   })
 
   server.use((ctx, next) => {
+    const start = performance.now()
+
     console.log("Handling", ctx.path)
     next()
-    console.log("Handling", ctx.path + "...", ctx.status === 200 ? "succeeded" : "failed")
+
+    const end = performance.now()
+
+    console.log(
+      "Handling",
+      ctx.path + "...",
+      ctx.status === 200 ? "succeeded" : "failed",
+      "in ",
+      `${end - start}ms`
+    )
   })
 
   server.use(router.routes())

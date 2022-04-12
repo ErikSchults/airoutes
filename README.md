@@ -17,7 +17,9 @@ node build/index.js
 ## Endpoints
 
 ### `GET /rest/v1/route/:sourceAirportCode/:destinationAirportCode`
+
 Example from Tallinn to Cape town with [httpie](https://httpie.io/docs/cli/usage)
+
 ```sh
 $ http http://localhost:3000/rest/v1/route/EETN/CPT
 HTTP/1.1 200 OK
