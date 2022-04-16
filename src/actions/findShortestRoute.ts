@@ -122,19 +122,24 @@ export default function findShortestRoute(
   const weights = makeWeights(sourceNode)
   const queue = makeQueue(sourceNode)
 
+  visited.add(sourceNode)
+
   while (queue.notEmpty) {
     const node = queue.next()
 
-    if (node.route.destinationId === destinationId) {
-      return findRoute(node)
-    }
-    if (visited.has(node) || node.depth > constraints.depth) continue
-
     for (const route of api.models.routes.getDestinations(node.route.destinationId)) {
-      queue.add(weights.add(node, route))
-    }
+      if (route.destinationId === destinationId) {
+        return findRoute(weights.add(node, route))
+      }
 
-    visited.add(node)
+      if (node.depth === constraints.depth) continue
+
+      const newNode = weights.add(node, route)
+      if (!visited.has(newNode)) {
+        queue.add(newNode)
+        visited.add(newNode)
+      }
+    }
   }
 
   return null
