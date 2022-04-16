@@ -28,19 +28,18 @@ function findRoute(destination: Node) {
   return result.reverse().map((r) => r.route)
 }
 
-function getKey(route: Route, depth: number) {
-  return `${route.destinationId}-${depth}`
-}
-
 function makeWeights(sourceNode: Node) {
-  const weights = new Map([[getKey(sourceNode.route, sourceNode.depth), sourceNode]])
+  const weights: Node[][] = []
+
+  weights[sourceNode.route.destinationId] = []
+  weights[sourceNode.route.destinationId][sourceNode.depth] = sourceNode
 
   return {
     add(parent: Node, route: Route): Node {
       const distance = parent.distance + route.distance
       const depth = parent.depth + (route.type === "LAND" ? 0 : 1)
 
-      let child = weights.get(getKey(route, depth))
+      let child = weights[route.destinationId]?.[depth]
 
       if (!child || child.distance > distance) {
         child = {
@@ -50,7 +49,11 @@ function makeWeights(sourceNode: Node) {
           parent,
         }
 
-        weights.set(getKey(route, depth), child)
+        if (!weights[route.destinationId]) {
+          weights[route.destinationId] = []
+        }
+
+        weights[route.destinationId][depth] = child
       }
 
       return child
@@ -94,11 +97,17 @@ function makeQueue(source: Node) {
 }
 
 function makeVisited() {
-  const visited: Set<string> = new Set()
+  const visited: number[][] = []
 
   return {
-    add: (node: Node) => visited.add(getKey(node.route, node.depth)),
-    has: (node: Node) => visited.has(getKey(node.route, node.depth)),
+    add: (node: Node) => {
+      if (!visited[node.route.destinationId]) {
+        visited[node.route.destinationId] = []
+      }
+
+      visited[node.route.destinationId][node.depth] = 1
+    },
+    has: (node: Node) => visited[node.route.destinationId]?.[node.depth] ?? 0,
   }
 }
 
