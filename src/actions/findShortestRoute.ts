@@ -1,6 +1,6 @@
 import { Models } from "../api/application"
 import { Route } from "models/routes"
-const bs = require("binary-search")
+import makeSortedList from "../../lib/makeSortedList"
 
 interface Node {
   distance: number
@@ -76,22 +76,14 @@ function makeSourceNode(sourceId: number): Node {
 }
 
 function makeQueue(source: Node) {
-  const queue: Node[] = [source]
-  const comparator = (target: Node, needle: Node) => needle.distance - target.distance
+  const queue = makeSortedList((target: Node, needle: Node) => needle.distance - target.distance)
+  queue.add(source)
 
   return {
-    add: (node: Node) => {
-      let index = bs(queue, node, comparator)
-
-      if (index < 0) {
-        index = Math.abs(index) - 1
-      }
-
-      queue.splice(index, 0, node)
-    },
-    next: () => queue.pop(),
+    add: queue.add,
+    next: () => queue.list.pop(),
     get notEmpty() {
-      return queue.length > 0
+      return queue.list.length > 0
     },
   }
 }
@@ -122,19 +114,24 @@ export default function findShortestRoute(
   const weights = makeWeights(sourceNode)
   const queue = makeQueue(sourceNode)
 
+  visited.add(sourceNode)
+
   while (queue.notEmpty) {
     const node = queue.next()
 
-    if (node.route.destinationId === destinationId) {
-      return findRoute(node)
-    }
-    if (visited.has(node) || node.depth > constraints.depth) continue
-
     for (const route of api.models.routes.getDestinations(node.route.destinationId)) {
-      queue.add(weights.add(node, route))
-    }
+      if (route.destinationId === destinationId) {
+        return findRoute(weights.add(node, route))
+      }
 
-    visited.add(node)
+      if (node.depth === constraints.depth) continue
+
+      const newNode = weights.add(node, route)
+      if (!visited.has(newNode)) {
+        queue.add(newNode)
+        visited.add(newNode)
+      }
+    }
   }
 
   return null
